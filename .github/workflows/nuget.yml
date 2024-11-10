@@ -1,0 +1,29 @@
+# This workflow will build a .NET project
+# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-net
+
+name: nuget
+
+on:
+  push:
+    tags: 
+      - "*"
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: replace version
+      run: sed -i "s=<Version>1.0.0</Version>=<Version>${{ github.ref_name }}</Version>=g" MParchin.Authority.csproj
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: 8.0.x
+    - name: Restore dependencies
+      run: dotnet restore
+    - name: Build
+      run: dotnet build --no-restore
+    - name: Push
+      run: dotnet nuget push bin/Release/MParchin.Authority.1.0.0.nupkg --api-key ${{ secrets.NUGET_API_KEY }}  --source https://www.nuget.org/
