@@ -24,6 +24,8 @@ jobs:
     - name: Restore dependencies
       run: dotnet restore
     - name: Build
-      run: dotnet build --no-restore
+      run: dotnet build --no-restore --configuration Release
+    - name: Pack
+      run: dotnet pack --no-build --configuration Release -o .
     - name: Push
-      run: dotnet nuget push bin/Release/MParchin.Authority.${{ github.ref_name }}.nupkg --api-key ${{ secrets.NUGET_API_KEY }}  --source https://www.nuget.org/
+      run: dotnet nuget push MParchin.Authority.${{ github.ref_name }}.nupkg --api-key ${{ secrets.NUGET_API_KEY }}  --source https://www.nuget.org/
