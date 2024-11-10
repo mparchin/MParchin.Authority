@@ -26,4 +26,4 @@ jobs:
     - name: Build
       run: dotnet build --no-restore
     - name: Push
-      run: dotnet nuget push bin/Release/MParchin.Authority.1.0.0.nupkg --api-key ${{ secrets.NUGET_API_KEY }}  --source https://www.nuget.org/
+      run: dotnet nuget push bin/Release/MParchin.Authority.${{ github.ref_name }}.nupkg --api-key ${{ secrets.NUGET_API_KEY }}  --source https://www.nuget.org/
