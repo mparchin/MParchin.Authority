@@ -5,12 +5,12 @@ namespace MParchin.Authority;
 
 public class AuthorityOptions : IHashOptions, IJWTFactoryOptions
 {
-    public TimeSpan ResetTokenLifeTimeSpan { get; } = TimeSpan.FromDays(1);
-    public int KeySize { get; } = 128;
-    public int Iterations { get; } = 400000;
-    public TimeSpan Expiration { get; } = TimeSpan.FromHours(1);
-    public TimeSpan RefresExpiration { get; } = TimeSpan.FromDays(7);
-    public string Authority { get; } = "";
-    public string[] Audience { get; } = [""];
-    public string CurrentApp { get; } = "";
+    public TimeSpan ResetTokenLifeTimeSpan { get; set; } = TimeSpan.FromDays(1);
+    public int KeySize { get; set; } = 128;
+    public int Iterations { get; set; } = 400000;
+    public TimeSpan Expiration { get; set; } = TimeSpan.FromHours(1);
+    public TimeSpan RefresExpiration { get; set; } = TimeSpan.FromDays(7);
+    public string Authority { get; set; } = "";
+    public string[] Audience { get; set; } = [""];
+    public string CurrentApp { get; set; } = "";
 }

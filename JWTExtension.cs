@@ -18,7 +18,7 @@ public static class JWTExtension
     private static void TryAddPrivateKey(this WebApplicationBuilder builder, string privateKeyPath) =>
         builder.Services.TryAddKeyedSingleton<IRSAProvider>(KeyEnum.Private, new RSAProvider(privateKeyPath));
 
-    private static void TryAddOptions(this WebApplicationBuilder builder, Action<IJWTFactoryOptions>? optionFunc = null)
+    private static void TryAddOptions(this WebApplicationBuilder builder, Action<AuthorityOptions>? optionFunc = null)
     {
         if (builder.Services.Any(sd => sd.ServiceType == typeof(IJWTFactoryOptions)))
             return;
@@ -29,11 +29,11 @@ public static class JWTExtension
     }
 
     public static void AddJWTAuthentication(this WebApplicationBuilder builder, string publicKeyPath,
-        Action<IJWTFactoryOptions>? optionFunc = null) =>
+        Action<AuthorityOptions>? optionFunc = null) =>
         builder.AddJWTAuthentication<AuthorityToken>(publicKeyPath, optionFunc);
 
     public static void AddJWTAuthentication<TAuthorityToken>(this WebApplicationBuilder builder, string publicKeyPath,
-        Action<IJWTFactoryOptions>? optionFunc)
+        Action<AuthorityOptions>? optionFunc)
     where TAuthorityToken : class, IAuthorityToken
     {
         builder.TryAddPublicKey(publicKeyPath);
@@ -50,12 +50,12 @@ public static class JWTExtension
     }
 
     public static void AddJWTAuthentication<TDb>(this WebApplicationBuilder builder,
-        string publicKeyPath, string privateKeyPath, Action<IJWTFactoryOptions>? optionFunc = null)
+        string publicKeyPath, string privateKeyPath, Action<AuthorityOptions>? optionFunc = null)
         where TDb : class, IAuthorityDb =>
         builder.AddJWTAuthentication<AuthorityToken, TDb, JWTFactory, Hash, AuthorityService>(publicKeyPath, privateKeyPath, optionFunc);
 
     public static void AddJWTAuthentication<TAuthorityToken, TDb, TJWTFactory, THash, TAuthorityService>(this WebApplicationBuilder builder,
-        string publicKeyPath, string privateKeyPath, Action<IJWTFactoryOptions>? optionFunc = null)
+        string publicKeyPath, string privateKeyPath, Action<AuthorityOptions>? optionFunc = null)
         where TAuthorityToken : class, IAuthorityToken
         where TDb : class, IAuthorityDb
         where TJWTFactory : class, IJWTFactory
