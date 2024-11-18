@@ -9,9 +9,7 @@ public class JWTUser : User
         jwtUser.Guid = user.Guid;
         jwtUser.Name = user.Name;
         jwtUser.Email = user.Email;
-        jwtUser.EmailVerified = user.EmailVerified;
         jwtUser.Phone = user.Phone;
-        jwtUser.PhoneVerified = user.PhoneVerified;
         jwtUser.Role = user.Role;
         jwtUser.LastLogIn = user.LastLogIn;
         jwtUser.UpdatedAt = user.UpdatedAt;

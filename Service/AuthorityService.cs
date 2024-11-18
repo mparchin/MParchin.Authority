@@ -23,13 +23,14 @@ public class AuthorityService(IAuthorityDb db, IHash hash) : IAuthorityService
     public async Task<bool> ExistsAsync(string username) =>
         await db.Users.AnyAsync(user => user.Email == username || user.Password == username);
 
-    public async Task<DbUser> GenerateResetPasswordToken(DbUser user, bool saveChanges = true)
+    public Task GenerateEmailOTPAsync(string email)
     {
-        hash.GeneratePasswordResetToken(user);
-        user.UpdatedAt = DateTime.UtcNow;
-        if (saveChanges)
-            await db.SaveChangesAsync();
-        return user;
+        throw new NotImplementedException();
+    }
+
+    public Task GeneratePhoneOTPAsync(string phone)
+    {
+        throw new NotImplementedException();
     }
 
     public async Task<DbUser> GetAsync(string username) =>
@@ -50,6 +51,16 @@ public class AuthorityService(IAuthorityDb db, IHash hash) : IAuthorityService
         throw new WrongUsernameOrPassword();
     }
 
+    public Task<DbUser> SignInEmailOTPAsync(string email, string otp, bool saveChanges = true)
+    {
+        throw new NotImplementedException();
+    }
+
+    public Task<DbUser> SignInPhoneOTPAsync(string phone, string otp, bool saveChanges = true)
+    {
+        throw new NotImplementedException();
+    }
+
     public async Task<DbUser> SignUpAsync(User user, string password, bool saveChanges = true)
     {
         if (db.Users.Any(dbUser => dbUser.Phone == user.Phone) || db.Users.Any(dbUser => dbUser.Email == user.Email))
@@ -66,5 +77,15 @@ public class AuthorityService(IAuthorityDb db, IHash hash) : IAuthorityService
             await db.SaveChangesAsync();
 
         return dbUser;
+    }
+
+    public Task<DbUser> SignUpPhoneEmailAsync(User user, string password, string otp, bool saveChanges = true)
+    {
+        throw new NotImplementedException();
+    }
+
+    public Task<DbUser> SignUpPhoneOTPAsync(User user, string password, string otp, bool saveChanges = true)
+    {
+        throw new NotImplementedException();
     }
 }

@@ -2,5 +2,5 @@ namespace MParchin.Authority.Service;
 
 public interface IMail
 {
-    public Task SendOTP(string email, string otp);
+    public Task SendOTPAsync(string email, string otp);
 }
