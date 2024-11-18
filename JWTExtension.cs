@@ -28,6 +28,26 @@ public static class JWTExtension
         builder.Services.TryAddSingleton<IHashOptions>(options);
     }
 
+    public static WebApplicationBuilder AddMailService<TMail>(this WebApplicationBuilder builder, bool @try = false)
+        where TMail : class, IMail
+    {
+        if (@try)
+            builder.Services.TryAddSingleton<IMail, TMail>();
+        else
+            builder.Services.AddSingleton<IMail, TMail>();
+        return builder;
+    }
+
+    public static WebApplicationBuilder AddTextMessageService<TTextMessage>(this WebApplicationBuilder builder, bool @try = false)
+        where TTextMessage : class, ITextMessage
+    {
+        if (@try)
+            builder.Services.TryAddSingleton<ITextMessage, TTextMessage>();
+        else
+            builder.Services.AddSingleton<ITextMessage, TTextMessage>();
+        return builder;
+    }
+
     public static void AddJWTAuthentication(this WebApplicationBuilder builder, string publicKeyPath,
         Action<AuthorityOptions>? optionFunc = null) =>
         builder.AddJWTAuthentication<AuthorityToken>(publicKeyPath, optionFunc);
@@ -38,6 +58,8 @@ public static class JWTExtension
     {
         builder.TryAddPublicKey(publicKeyPath);
         builder.TryAddOptions(optionFunc);
+        builder.AddMailService<DefaultMail>(true);
+        builder.AddTextMessageService<DefaultTextMessage>(true);
         builder.Services.AddSingleton<IAuthorityToken, TAuthorityToken>()
             .AddSingleton<IAlgorithmFactory>(sp => new RSAlgorithmFactory(sp.GetRequiredKeyedService<IRSAProvider>(KeyEnum.Public).Key))
             .AddSingleton<IIdentityFactory, TokenFactory.ClaimsIdentityFactory>()
@@ -65,6 +87,8 @@ public static class JWTExtension
         builder.TryAddPrivateKey(privateKeyPath);
         builder.TryAddPublicKey(publicKeyPath);
         builder.TryAddOptions(optionFunc);
+        builder.AddMailService<DefaultMail>(true);
+        builder.AddTextMessageService<DefaultTextMessage>(true);
         builder.Services.AddScoped<IAuthorityDb>(sp => sp.GetService<TDb>()!)
             .AddSingleton<IJWTFactory, TJWTFactory>()
             .AddSingleton<IHash, THash>()
