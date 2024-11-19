@@ -2,10 +2,12 @@ using Microsoft.EntityFrameworkCore;
 using MParchin.Authority.Cryptography;
 using MParchin.Authority.Exceptions;
 using MParchin.Authority.Model;
+using MParchin.Authority.OTP;
 
 namespace MParchin.Authority.Service;
 
-public class AuthorityService(IAuthorityDb db, IHash hash) : IAuthorityService
+public class AuthorityService(IAuthorityDb db, IHash hash, IMail mail, ITextMessage textMessage,
+    IOTPFactory oTPFactory, IStorage storage) : IAuthorityService
 {
     public async Task<DbUser> ChangePasswordAsync(string username, string currentPassword,
         string newPassword, bool saveChanges = true) =>
@@ -20,21 +22,28 @@ public class AuthorityService(IAuthorityDb db, IHash hash) : IAuthorityService
         return user;
     }
 
-    public async Task<bool> ExistsAsync(string username) =>
-        await db.Users.AnyAsync(user => user.Email == username || user.Password == username);
+    public Task<bool> ConfirmOTPAsync(string username, string otp) =>
+        storage.ConfirmAndRemoveAsync(username, otp);
 
-    public Task GenerateEmailOTPAsync(string email)
+    public Task<bool> ExistsAsync(string username) =>
+        db.Users.AnyAsync(user => user.Email == username || user.Password == username);
+
+    public async Task GenerateEmailOTPAsync(string email)
     {
-        throw new NotImplementedException();
+        var otp = oTPFactory.Create();
+        await storage.StoreAsync(email, otp);
+        await mail.SendOTPAsync(email, otp);
     }
 
-    public Task GeneratePhoneOTPAsync(string phone)
+    public async Task GeneratePhoneOTPAsync(string phone)
     {
-        throw new NotImplementedException();
+        var otp = oTPFactory.Create();
+        await storage.StoreAsync(phone, otp);
+        await textMessage.SendOTPAsync(phone, otp);
     }
 
-    public async Task<DbUser> GetAsync(string username) =>
-        await db.Users.FirstAsync(user => user.Email == username || user.Phone == username);
+    public Task<DbUser> GetAsync(string username) =>
+        db.Users.FirstAsync(user => user.Email == username || user.Phone == username);
 
     public async Task<DbUser> SignInAsync(string username, string password, bool saveChanges = true)
     {
@@ -51,16 +60,20 @@ public class AuthorityService(IAuthorityDb db, IHash hash) : IAuthorityService
         throw new WrongUsernameOrPassword();
     }
 
-    public Task<DbUser> SignInEmailOTPAsync(string email, string otp, bool saveChanges = true)
+    public async Task<DbUser> SignInOTPAsync(string username, string otp, bool saveChanges = true)
     {
-        throw new NotImplementedException();
+        if (await db.Users.FirstOrDefaultAsync(user => user.Email == username || user.Phone == username) is { } dbUser)
+        {
+            if (await ConfirmOTPAsync(username, otp))
+            {
+                dbUser.LastLogIn = DateTime.UtcNow;
+                if (saveChanges)
+                    await db.SaveChangesAsync();
+                return dbUser;
+            }
+        }
+        throw new WrongOTPException();
     }
-
-    public Task<DbUser> SignInPhoneOTPAsync(string phone, string otp, bool saveChanges = true)
-    {
-        throw new NotImplementedException();
-    }
-
     public async Task<DbUser> SignUpAsync(User user, string password, bool saveChanges = true)
     {
         if (db.Users.Any(dbUser => dbUser.Phone == user.Phone) || db.Users.Any(dbUser => dbUser.Email == user.Email))
@@ -79,13 +92,8 @@ public class AuthorityService(IAuthorityDb db, IHash hash) : IAuthorityService
         return dbUser;
     }
 
-    public Task<DbUser> SignUpPhoneEmailAsync(User user, string password, string otp, bool saveChanges = true)
-    {
-        throw new NotImplementedException();
-    }
-
-    public Task<DbUser> SignUpPhoneOTPAsync(User user, string password, string otp, bool saveChanges = true)
-    {
-        throw new NotImplementedException();
-    }
+    public async Task<DbUser> SignUpOTPAsync(User user, string password, string otp, bool saveChanges = true) =>
+        await ConfirmOTPAsync(user.Email.Contains('@') ? user.Email : user.Phone, otp)
+            ? await SignUpAsync(user, password, saveChanges)
+            : throw new WrongOTPException();
 }

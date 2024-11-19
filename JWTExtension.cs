@@ -98,6 +98,7 @@ public static class JWTExtension
             .TryAddOptions(optionFunc)
             .AddScoped<IAuthorityDb>(sp => sp.GetService<TDb>()!)
             .AddSingleton<IJWTFactory, TJWTFactory>()
+            .AddSingleton<IOTPFactory, OTPFactory>()
             .AddSingleton<IHash, THash>()
             .AddScoped<IAuthorityService, TAuthorityService>();
         return services.AddJWTAuthentication<TAuthorityToken>(publicKeyPath, optionFunc);
