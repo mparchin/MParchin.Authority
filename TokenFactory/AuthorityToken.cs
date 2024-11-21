@@ -3,7 +3,7 @@ using MParchin.Authority.Schema;
 
 namespace MParchin.Authority.TokenFactory
 {
-    public class AuthorityToken(IJWTFactoryOptions options) : IAuthorityToken
+    public class AuthorityToken(IJWTFactoryOptions options) : IAuthority
     {
         protected virtual List<(string key, Func<JWTUser, string> get, Action<JWTUser, string> set)> Keys { get; } =
         [

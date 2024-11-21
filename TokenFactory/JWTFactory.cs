@@ -10,7 +10,7 @@ using Newtonsoft.Json;
 namespace MParchin.Authority.TokenFactory;
 
 public class JWTFactory([FromKeyedServices(KeyEnum.Private)] IRSAProvider @private,
-    [FromKeyedServices(KeyEnum.Public)] IRSAProvider @public, IAuthorityToken authorityToken,
+    [FromKeyedServices(KeyEnum.Public)] IRSAProvider @public, IAuthority authorityToken,
     IJWTFactoryOptions options) : IJWTFactory
 {
     public JWToken Refresh(JWToken token)

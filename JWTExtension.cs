@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using JWT.Algorithms;
 using JWT.Extensions.AspNetCore;
 using JWT.Extensions.AspNetCore.Factories;
@@ -5,6 +6,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using MParchin.Authority.Cryptography;
 using MParchin.Authority.OTP;
+using MParchin.Authority.Schema;
 using MParchin.Authority.Service;
 using MParchin.Authority.TokenFactory;
 
@@ -60,14 +62,13 @@ public static class JWTExtension
 
     public static IServiceCollection AddJWTAuthentication<TAuthorityToken>(this IServiceCollection services, string publicKeyPath,
         Action<AuthorityOptions>? optionFunc)
-    where TAuthorityToken : class, IAuthorityToken
+    where TAuthorityToken : class, IAuthority
     {
         services.TryAddPublicKey(publicKeyPath)
             .TryAddOptions(optionFunc)
-            .AddSingleton<IAuthorityToken, TAuthorityToken>()
+            .AddSingleton<IAuthority, TAuthorityToken>()
             .AddSingleton<IAlgorithmFactory>(sp => new RSAlgorithmFactory(sp.GetRequiredKeyedService<IRSAProvider>(KeyEnum.Public).Key))
             .AddSingleton<IIdentityFactory, TokenFactory.ClaimsIdentityFactory>()
-            .AddScoped<AuthorityClaims>()
             .AddAuthentication(options =>
             {
                 options.DefaultAuthenticateScheme = JwtAuthenticationDefaults.AuthenticationScheme;
@@ -83,7 +84,7 @@ public static class JWTExtension
 
     public static IServiceCollection AddJWTAuthentication<TAuthorityToken, TDb, TJWTFactory, THash, TAuthorityService>(
         this IServiceCollection services, string publicKeyPath, string privateKeyPath, Action<AuthorityOptions>? optionFunc = null)
-        where TAuthorityToken : class, IAuthorityToken
+        where TAuthorityToken : class, IAuthority
         where TDb : class, IAuthorityDb
         where TJWTFactory : class, IJWTFactory
         where THash : class, IHash
@@ -120,4 +121,7 @@ public static class JWTExtension
         options.RedisDatabaseNumber = databaseNumber;
         options.Expiration = expiration ?? TimeSpan.FromSeconds(90);
     }
+
+    public static JWTUser GetUser(this ClaimsPrincipal principal, IAuthority token) =>
+        token.GetUser(principal.ToClaimDictionary());
 }

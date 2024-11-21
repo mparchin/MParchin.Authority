@@ -5,7 +5,7 @@ using Microsoft.Extensions.Options;
 
 namespace MParchin.Authority.TokenFactory;
 
-public class ClaimsIdentityFactory(IOptionsMonitor<JwtAuthenticationOptions> options, IAuthorityToken authorityToken) :
+public class ClaimsIdentityFactory(IOptionsMonitor<JwtAuthenticationOptions> options, IAuthority authorityToken) :
     JWT.Extensions.AspNetCore.Factories.ClaimsIdentityFactory(options), IIdentityFactory
 {
     public new IIdentity CreateIdentity(Type type, object payload)

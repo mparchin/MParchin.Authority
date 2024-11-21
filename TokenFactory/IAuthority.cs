@@ -2,7 +2,7 @@ using MParchin.Authority.Schema;
 
 namespace MParchin.Authority.TokenFactory;
 
-public interface IAuthorityToken
+public interface IAuthority
 {
     public JWTUser GetUser(Dictionary<string, string> claims);
     public Dictionary<string, string> GetClaims(JWTUser user);
