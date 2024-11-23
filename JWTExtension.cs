@@ -1,4 +1,3 @@
-using System.Security.Claims;
 using JWT.Algorithms;
 using JWT.Extensions.AspNetCore;
 using JWT.Extensions.AspNetCore.Factories;
@@ -6,7 +5,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using MParchin.Authority.Cryptography;
 using MParchin.Authority.OTP;
-using MParchin.Authority.Schema;
 using MParchin.Authority.Service;
 using MParchin.Authority.TokenFactory;
 
@@ -46,11 +44,11 @@ public static class JWTExtension
         services.AddSingleton<ITextMessage, TTextMessage>();
 
     public static IServiceCollection AddOTPStorageService(this IServiceCollection services,
-        Action<StorageOptions>? configuration = null)
+        Action<OTPOptions>? configuration = null)
     {
-        var options = new StorageOptions();
+        var options = new OTPOptions();
         configuration?.Invoke(options);
-        services.AddSingleton<IStorageOptions>(options);
+        services.AddSingleton<IOTPOptions>(options);
         return string.IsNullOrEmpty(options.RedisHost)
             ? services.AddSingleton<IStorage, MemoryStorage>()
             : services.AddSingleton<IStorage, RedisStorage>();
@@ -91,7 +89,7 @@ public static class JWTExtension
         where TAuthorityService : class, IAuthorityService
     {
         services.TryAddSingleton<ITextMessage, DefaultTextMessage>();
-        services.TryAddSingleton<IStorageOptions, StorageOptions>();
+        services.TryAddSingleton<IOTPOptions, OTPOptions>();
         services.TryAddSingleton<IStorage, MemoryStorage>();
         services.TryAddSingleton<IMail, DefaultMail>();
         services.TryAddPrivateKey(privateKeyPath)
@@ -105,14 +103,15 @@ public static class JWTExtension
         return services.AddJWTAuthentication<TAuthorityToken>(publicKeyPath, optionFunc);
     }
 
-    public static void UseMemoryStorage(this StorageOptions options, TimeSpan? expiration = null)
+    public static void UseMemoryStorage(this OTPOptions options, TimeSpan? expiration = null, int OTPLength = 6)
     {
         options.Expiration = expiration ?? TimeSpan.FromSeconds(90);
         options.RedisHost = null;
+        options.OTPLength = OTPLength;
     }
 
-    public static void UseRedisStorage(this StorageOptions options, string host, int port = 6379,
-        string? user = null, string? password = null, int databaseNumber = 0, TimeSpan? expiration = null)
+    public static void UseRedisStorage(this OTPOptions options, string host, int port = 6379,
+        string? user = null, string? password = null, int databaseNumber = 0, TimeSpan? expiration = null, int OTPLength = 6)
     {
         options.RedisHost = host;
         options.RedisPort = port;
@@ -120,8 +119,6 @@ public static class JWTExtension
         options.RedisPassword = password;
         options.RedisDatabaseNumber = databaseNumber;
         options.Expiration = expiration ?? TimeSpan.FromSeconds(90);
+        options.OTPLength = OTPLength;
     }
-
-    public static JWTUser GetUser(this ClaimsPrincipal principal, IAuthority token) =>
-        token.GetUser(principal.ToClaimDictionary());
 }

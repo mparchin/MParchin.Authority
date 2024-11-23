@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using MParchin.Authority.Exceptions;
 using MParchin.Authority.Schema;
 
@@ -50,5 +51,8 @@ namespace MParchin.Authority.TokenFactory
 
         public Dictionary<string, string> GetClaims(JWTUser user) =>
             Keys.ToDictionary(key => key.key, key => key.get(user));
+
+        public JWTUser GetUser(ClaimsPrincipal principal) =>
+            GetUser(principal.ToClaimDictionary());
     }
 }

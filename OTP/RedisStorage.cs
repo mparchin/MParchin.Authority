@@ -2,7 +2,7 @@ using StackExchange.Redis;
 
 namespace MParchin.Authority.OTP;
 
-public class RedisStorage(IStorageOptions options) : IStorage
+public class RedisStorage(IOTPOptions options) : IStorage
 {
     private readonly ConnectionMultiplexer _redis = ConnectionMultiplexer.Connect(new ConfigurationOptions
     {
@@ -25,6 +25,12 @@ public class RedisStorage(IStorageOptions options) : IStorage
             return true;
         }
         return false;
+    }
+
+    public async Task<bool> ExistsAsync(string username)
+    {
+        var database = _redis.GetDatabase();
+        return await database.KeyExistsAsync(username);
     }
 
     public async Task StoreAsync(string username, string otp)

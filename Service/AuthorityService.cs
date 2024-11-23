@@ -9,12 +9,15 @@ namespace MParchin.Authority.Service;
 public class AuthorityService(IAuthorityDb db, IHash hash, IMail mail, ITextMessage textMessage,
     IOTPFactory oTPFactory, IStorage storage) : IAuthorityService
 {
-    public async Task<DbUser> ChangePasswordAsync(string username, string currentPassword,
-        string newPassword, bool saveChanges = true) =>
-        await ChangePasswordAsync(await SignInAsync(username, currentPassword, false), newPassword, saveChanges);
-
-    public async Task<DbUser> ChangePasswordAsync(DbUser user, string newPassword, bool saveChanges = true)
+    public async Task<DbUser> ChangePasswordAsync(string username, string otp,
+        string newPassword, bool saveChanges = true)
     {
+        if (!await ConfirmOTPAsync(username, otp))
+            throw new WrongOTPException();
+        if (!await ExistsAsync(username))
+            throw new WrongUsernameOrPassword();
+
+        var user = await GetAsync(username);
         hash.SetPassword(user, newPassword);
         user.UpdatedAt = DateTime.UtcNow;
         if (saveChanges)
@@ -30,6 +33,8 @@ public class AuthorityService(IAuthorityDb db, IHash hash, IMail mail, ITextMess
 
     public async Task GenerateEmailOTPAsync(string email)
     {
+        if (await storage.ExistsAsync(email))
+            throw new OTPExistsException();
         var otp = oTPFactory.Create();
         await storage.StoreAsync(email, otp);
         await mail.SendOTPAsync(email, otp);
@@ -37,6 +42,8 @@ public class AuthorityService(IAuthorityDb db, IHash hash, IMail mail, ITextMess
 
     public async Task GeneratePhoneOTPAsync(string phone)
     {
+        if (await storage.ExistsAsync(phone))
+            throw new OTPExistsException();
         var otp = oTPFactory.Create();
         await storage.StoreAsync(phone, otp);
         await textMessage.SendOTPAsync(phone, otp);

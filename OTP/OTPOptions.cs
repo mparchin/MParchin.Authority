@@ -1,6 +1,6 @@
 namespace MParchin.Authority.OTP;
 
-public class StorageOptions : IStorageOptions
+public class OTPOptions : IOTPOptions
 {
     public TimeSpan Expiration { get; set; } = TimeSpan.FromSeconds(90);
 
@@ -13,4 +13,6 @@ public class StorageOptions : IStorageOptions
     public string? RedisPassword { get; set; }
 
     public int RedisDatabaseNumber { get; set; } = 0;
+
+    public int OTPLength { get; set; } = 6;
 }

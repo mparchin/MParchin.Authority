@@ -1,8 +1,9 @@
 namespace MParchin.Authority.OTP;
 
-public interface IStorageOptions
+public interface IOTPOptions
 {
     public TimeSpan Expiration { get; }
+    public int OTPLength { get; }
     public string? RedisHost { get; }
     public int RedisPort { get; }
     public string? RedisUser { get; }
