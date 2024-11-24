@@ -16,19 +16,41 @@ internal static class InternalExtension
     internal static void MapAuthorityGroup(this RouteGroupBuilder group)
     {
         // group.MapPost("/register", RegisterAsync);
-        group.MapPost("/register", RegisterOTPAsync);
+        group.MapPost("/register", RegisterOTPAsync)
+            .AllowAnonymous()
+            .WithTags("Authority")
+            .WithDescription("Register users using otp from \"/otp/{username}\" route");
 
-        group.MapPost("/refresh", Refresh);
+        group.MapPost("/refresh", Refresh)
+            .WithTags("Authority")
+            .WithDescription("Refresh access token");
 
-        group.MapPost("/login", LoginAsync);
+        group.MapPost("/login", LoginAsync)
+            .AllowAnonymous()
+            .WithTags("Authority")
+            .WithDescription("Login users using username and password");
 
-        group.MapPost("/otp/login", LoginOTPAsync);
-        group.MapPost("/otp/{username}", GenerateOTPAsync);
+        group.MapPost("/otp/login", LoginOTPAsync)
+            .AllowAnonymous()
+            .WithTags("Authority")
+            .WithDescription("Login users using username and otp");
+        group.MapPost("/otp/{username}", GenerateOTPAsync)
+            .AllowAnonymous()
+            .WithTags("Authority")
+            .WithDescription("Request otp to be send to username (either phone or email)");
 
-        group.MapGet("/users/{username}", GetUserPublicInfoAsync);
+        group.MapGet("/users/{username}", GetUserPublicInfoAsync)
+            .AllowAnonymous()
+            .WithTags("Users")
+            .WithDescription("Get public information of a single user or its existance");
         group.MapPost("/users/{username}/changepassword", ChangePasswordAsync)
-            .RequireAuthorization(Authorization.User);
-        group.MapGet("/users/me", Me).RequireAuthorization(Authorization.User);
+            .RequireAuthorization(Authorization.User)
+            .WithTags("Authority")
+            .WithDescription("Change password using otp from \"/otp/{username}\" route");
+        group.MapGet("/users/me", Me)
+            .RequireAuthorization(Authorization.User)
+            .WithTags("Users")
+            .WithDescription("Get current token information");
     }
 
     // internal static async Task<Results<BadRequest, Ok<JWToken>>> RegisterAsync(RegisterInfo info,
