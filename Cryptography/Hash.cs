@@ -3,11 +3,12 @@ using MParchin.Authority.Model;
 
 namespace MParchin.Authority.Cryptography;
 
-public class Hash(IHashOptions options) : IHash
+public class Hash<TDbUser>(IHashOptions options) : IHash<TDbUser>
+    where TDbUser : User, IDbUser
 {
     private HashAlgorithmName HashAlgorithmName { get; } = HashAlgorithmName.SHA512;
 
-    public void SetPassword(DbUser user, string password)
+    public void SetPassword(TDbUser user, string password)
     {
         user.Salt = Convert.ToHexString(RandomNumberGenerator.GetBytes(options.KeySize));
         user.Password = Convert.ToHexString(
@@ -19,7 +20,7 @@ public class Hash(IHashOptions options) : IHash
                 options.KeySize));
     }
 
-    public bool VerifyPassword(DbUser user, string password) =>
+    public bool VerifyPassword(TDbUser user, string password) =>
         CryptographicOperations.FixedTimeEquals(
             Rfc2898DeriveBytes.Pbkdf2(
                 password,

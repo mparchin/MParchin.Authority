@@ -1,4 +1,7 @@
-internal enum KeyEnum
+
+namespace MParchin.Authority.Cryptography;
+
+public enum RSAKeyEnum
 {
     Public,
     Private

@@ -4,5 +4,5 @@ namespace MParchin.Authority.Cryptography;
 
 public interface IRSAProvider : IDisposable
 {
-    public RSA Key { get; }
+    public RSACryptoServiceProvider Provider { get; }
 }

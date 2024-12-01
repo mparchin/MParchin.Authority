@@ -6,10 +6,12 @@ using MParchin.Authority.OTP;
 
 namespace MParchin.Authority.Service;
 
-public class AuthorityService(IAuthorityDb db, IHash hash, IMail mail, ITextMessage textMessage,
-    IOTPFactory oTPFactory, IStorage storage) : IAuthorityService
+public class AuthorityService<TDbUser, TUser>(IAuthorityDb<TDbUser> db, IHash<TDbUser> hash,
+    IMail mail, ITextMessage textMessage, IOTPFactory oTPFactory, IStorage storage) : IAuthorityService<TDbUser, TUser>
+    where TDbUser : TUser, IDbUser, new()
+    where TUser : User
 {
-    public async Task<DbUser> ChangePasswordAsync(string username, string otp,
+    public async Task<TDbUser> ChangePasswordAsync(string username, string otp,
         string newPassword, bool saveChanges = true)
     {
         if (!await ConfirmOTPAsync(username, otp))
@@ -49,10 +51,10 @@ public class AuthorityService(IAuthorityDb db, IHash hash, IMail mail, ITextMess
         await textMessage.SendOTPAsync(phone, otp);
     }
 
-    public Task<DbUser> GetAsync(string username) =>
+    public Task<TDbUser> GetAsync(string username) =>
         db.Users.FirstAsync(user => user.Email == username || user.Phone == username);
 
-    public async Task<DbUser> SignInAsync(string username, string password, bool saveChanges = true)
+    public async Task<TDbUser> SignInAsync(string username, string password, bool saveChanges = true)
     {
         if (await db.Users.FirstOrDefaultAsync(user => user.Email == username || user.Phone == username) is { } dbUser)
         {
@@ -67,7 +69,7 @@ public class AuthorityService(IAuthorityDb db, IHash hash, IMail mail, ITextMess
         throw new WrongUsernameOrPassword();
     }
 
-    public async Task<DbUser> SignInOTPAsync(string username, string otp, bool saveChanges = true)
+    public async Task<TDbUser> SignInOTPAsync(string username, string otp, bool saveChanges = true)
     {
         if (await db.Users.FirstOrDefaultAsync(user => user.Email == username || user.Phone == username) is { } dbUser)
         {
@@ -81,13 +83,14 @@ public class AuthorityService(IAuthorityDb db, IHash hash, IMail mail, ITextMess
         }
         throw new WrongOTPException();
     }
-    public async Task<DbUser> SignUpAsync(User user, string password, bool saveChanges = true)
+    public async Task<TDbUser> SignUpAsync(TUser user, string password, bool saveChanges = true)
     {
-        if (db.Users.Any(dbUser => dbUser.Phone == user.Phone) || db.Users.Any(dbUser => dbUser.Email == user.Email))
+        if ((!string.IsNullOrEmpty(user.Phone) && db.Users.Any(dbUser => dbUser.Phone == user.Phone)) ||
+            (!string.IsNullOrEmpty(user.Email) && db.Users.Any(dbUser => dbUser.Email == user.Email)))
             throw new UserExistsException();
 
-        var dbUser = new DbUser();
-        DbUser.FillGeneralDataInDb(dbUser, user);
+        var dbUser = new TDbUser();
+        dbUser.FillFromUser(user);
 
         hash.SetPassword(dbUser, password);
 
@@ -99,8 +102,8 @@ public class AuthorityService(IAuthorityDb db, IHash hash, IMail mail, ITextMess
         return dbUser;
     }
 
-    public async Task<DbUser> SignUpOTPAsync(User user, string password, string otp, bool saveChanges = true) =>
-        await ConfirmOTPAsync(user.Email.Contains('@') ? user.Email : user.Phone, otp)
+    public async Task<TDbUser> SignUpOTPAsync(TUser user, string password, string otp, bool saveChanges = true) =>
+        (await ConfirmOTPAsync(user.Email.Contains('@') ? user.Email : user.Phone, otp))
             ? await SignUpAsync(user, password, saveChanges)
             : throw new WrongOTPException();
 }

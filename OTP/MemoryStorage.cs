@@ -1,4 +1,3 @@
-
 namespace MParchin.Authority.OTP;
 
 public class MemoryStorage(IOTPOptions options) : IStorage
@@ -7,9 +6,9 @@ public class MemoryStorage(IOTPOptions options) : IStorage
     public Task<bool> ConfirmAndRemoveAsync(string username, string otp)
     {
         var ret = _memory.Any(pair => pair.Key == username && pair.Value.otp == otp &&
-            pair.Value.CreationTime + options.Expiration < DateTime.UtcNow);
+            pair.Value.CreationTime + options.Expiration > DateTime.UtcNow);
 
-        if (ret || _memory.Any(pair => pair.Key == username && pair.Value.otp == otp))
+        if (ret)
             _memory.Remove(username);
 
         RemoveExpired();
@@ -36,7 +35,7 @@ public class MemoryStorage(IOTPOptions options) : IStorage
     }
 
     private void RemoveExpired() =>
-        _memory.Where((pair) => pair.Value.CreationTime + options.Expiration >= DateTime.UtcNow)
+        _memory.Where((pair) => pair.Value.CreationTime + options.Expiration <= DateTime.UtcNow)
             .Select(pair => pair.Key)
             .ToList()
             .ForEach(key => _memory.Remove(key));

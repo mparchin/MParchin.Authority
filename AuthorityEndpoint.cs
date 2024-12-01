@@ -9,11 +9,18 @@ using MParchin.Authority.Schema;
 using MParchin.Authority.Service;
 using MParchin.Authority.TokenFactory;
 
-namespace MParchin.Authority.Endpoints;
+namespace MParchin.Authority;
 
-internal static class InternalExtension
+public static class AuthorityEndpoint<TJWToken, TJWTUser, TDbUser, TUser>
+    where TDbUser : TUser, IDbUser, new()
+    where TUser : User, new()
+    where TJWTUser : JWTUser<TUser>, new()
+    where TJWToken : JWToken
 {
-    internal static void MapAuthorityGroup(this RouteGroupBuilder group)
+    public static void Map(WebApplication app, string prefix = "/") =>
+        MapAuthorityGroup(app.MapGroup(prefix));
+
+    private static void MapAuthorityGroup(RouteGroupBuilder group)
     {
         // group.MapPost("/register", RegisterAsync);
         group.MapPost("/register", RegisterOTPAsync)
@@ -21,7 +28,7 @@ internal static class InternalExtension
             .WithTags("Authority")
             .WithDescription("Register users using otp from \"/otp/{username}\" route");
 
-        group.MapPost("/refresh", Refresh)
+        group.MapPost("/refresh", RefreshAsync)
             .WithTags("Authority")
             .WithDescription("Refresh access token");
 
@@ -47,6 +54,7 @@ internal static class InternalExtension
             .RequireAuthorization(Authorization.User)
             .WithTags("Authority")
             .WithDescription("Change password using otp from \"/otp/{username}\" route");
+
         group.MapGet("/users/me", Me)
             .RequireAuthorization(Authorization.User)
             .WithTags("Users")
@@ -70,31 +78,28 @@ internal static class InternalExtension
     //     return TypedResults.BadRequest();
     // }
 
-    internal static async Task<Results<BadRequest, Ok<JWToken>>> RegisterOTPAsync(RegisterOTPRequest request,
-        IAuthorityService service, IJWTFactory factory)
+    private static async Task<Results<BadRequest, Ok<TJWToken>>> RegisterOTPAsync(
+        RegisterOTPRequest request, IAuthorityService<TDbUser, TUser> service, IJWTFactory<TJWToken, TJWTUser, TUser> factory)
     {
         try
         {
-            var user = await service.SignUpOTPAsync(new User
+            var user = await service.SignUpOTPAsync(new TUser
             {
                 Email = request.Username.Contains('@') ? request.Username : "",
                 Phone = request.Username.Contains('@') ? "" : request.Username,
                 Name = request.Name,
             }, request.Password, request.Otp);
-            return TypedResults.Ok(factory.Sign(user));
+            return TypedResults.Ok(await factory.SignAsync(user));
         }
         catch { }
         return TypedResults.BadRequest();
     }
 
-    internal static async Task<Ok<PublicUserInfo>> GetUserPublicInfoAsync([FromRoute] string username, IAuthorityService service)
+    private static async Task<Results<NotFound, Ok<PublicUserInfo>>> GetUserPublicInfoAsync(
+        [FromRoute] string username, IAuthorityService<TDbUser, TUser> service)
     {
         if (!await service.ExistsAsync(username))
-            return TypedResults.Ok(new PublicUserInfo
-            {
-                Name = null,
-                Username = username,
-            });
+            return TypedResults.NotFound();
 
         return TypedResults.Ok(new PublicUserInfo
         {
@@ -103,40 +108,41 @@ internal static class InternalExtension
         });
     }
 
-    internal static Results<UnauthorizedHttpResult, Ok<JWToken>> Refresh(JWToken token, IJWTFactory factory)
+    private static async Task<Results<UnauthorizedHttpResult, Ok<TJWToken>>> RefreshAsync(
+        TJWToken token, IJWTFactory<TJWToken, TJWTUser, TUser> factory)
     {
         try
         {
-            return TypedResults.Ok(factory.Refresh(token));
+            return TypedResults.Ok(await factory.RefreshAsync(token.RefreshToken));
         }
         catch { }
         return TypedResults.Unauthorized();
     }
 
-    internal static async Task<Results<UnauthorizedHttpResult, Ok<JWToken>>> LoginAsync(LoginRequest request,
-        IAuthorityService service, IJWTFactory factory)
+    private static async Task<Results<UnauthorizedHttpResult, Ok<TJWToken>>> LoginAsync(
+        LoginRequest request, IAuthorityService<TDbUser, TUser> service, IJWTFactory<TJWToken, TJWTUser, TUser> factory)
     {
         try
         {
-            return TypedResults.Ok(factory.Sign(await service.SignInAsync(request.Username, request.Password)));
+            return TypedResults.Ok(await factory.SignAsync(await service.SignInAsync(request.Username, request.Password)));
         }
         catch { }
         return TypedResults.Unauthorized();
     }
 
-    internal static async Task<Results<UnauthorizedHttpResult, Ok<JWToken>>> LoginOTPAsync(LoginOTPRequest request,
-        IAuthorityService service, IJWTFactory factory)
+    private static async Task<Results<UnauthorizedHttpResult, Ok<TJWToken>>> LoginOTPAsync(
+        LoginOTPRequest request, IAuthorityService<TDbUser, TUser> service, IJWTFactory<TJWToken, TJWTUser, TUser> factory)
     {
         try
         {
-            return TypedResults.Ok(factory.Sign(await service.SignInOTPAsync(request.Username, request.Otp)));
+            return TypedResults.Ok(await factory.SignAsync(await service.SignInOTPAsync(request.Username, request.Otp)));
         }
         catch { }
         return TypedResults.Unauthorized();
     }
 
-    internal static async Task<Results<BadRequest, Ok>> GenerateOTPAsync([FromRoute] string username,
-        IAuthorityService service)
+    private static async Task<Results<BadRequest, Ok>> GenerateOTPAsync([FromRoute] string username,
+        IAuthorityService<TDbUser, TUser> service)
     {
         try
         {
@@ -150,8 +156,8 @@ internal static class InternalExtension
         return TypedResults.BadRequest();
     }
 
-    internal static async Task<Results<BadRequest, Ok>> ChangePasswordAsync([FromRoute] string username,
-        ChangePasswordRequest request, IAuthorityService service)
+    private static async Task<Results<BadRequest, Ok>> ChangePasswordAsync([FromRoute] string username,
+        ChangePasswordRequest request, IAuthorityService<TDbUser, TUser> service)
     {
         try
         {
@@ -162,6 +168,10 @@ internal static class InternalExtension
         return TypedResults.BadRequest();
     }
 
-    internal static Ok<User> Me(IAuthority authority, ClaimsPrincipal principal) =>
-        TypedResults.Ok<User>(authority.GetUser(principal));
+    private static Ok<TUser> Me(ClaimsPrincipal principal)
+    {
+        var jwtUser = new TJWTUser();
+        jwtUser.FromClaims(principal);
+        return TypedResults.Ok(jwtUser.User);
+    }
 }

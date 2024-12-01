@@ -1,19 +1,20 @@
-using System.ComponentModel.DataAnnotations.Schema;
-
 namespace MParchin.Authority.Model;
 
-public partial class DbUser : User
+public partial class DbUser : User, IDbUser
 {
-    [NotMapped]
-    public static Action<DbUser, User> FillGeneralDataInDb { get; set; } = (dbUser, user) =>
-    {
-        dbUser.Email = user.Email;
-        dbUser.Phone = user.Phone;
-        dbUser.Name = user.Name;
-        dbUser.Role = user.Role;
-    };
-
     public int Id { get; set; }
     public string Salt { get; set; } = "";
     public string Password { get; set; } = "";
+
+    public virtual void FillFromUser<TUser>(TUser user) where TUser : User
+    {
+        Guid = user.Guid;
+        Name = user.Name;
+        Email = user.Email;
+        Phone = user.Phone;
+        Role = user.Role;
+        LastLogIn = user.LastLogIn;
+        UpdatedAt = user.UpdatedAt;
+        CreatedAt = user.CreatedAt;
+    }
 }

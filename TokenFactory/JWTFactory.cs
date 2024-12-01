@@ -1,47 +1,71 @@
-using JWT.Algorithms;
-using JWT.Builder;
+using System.Text;
+using System.Text.Json;
+using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.DependencyInjection;
 using MParchin.Authority.Cryptography;
 using MParchin.Authority.Exceptions;
 using MParchin.Authority.Model;
 using MParchin.Authority.Schema;
-using Newtonsoft.Json;
 
 namespace MParchin.Authority.TokenFactory;
 
-public class JWTFactory([FromKeyedServices(KeyEnum.Private)] IRSAProvider @private,
-    [FromKeyedServices(KeyEnum.Public)] IRSAProvider @public, IAuthority authorityToken,
-    IJWTFactoryOptions options) : IJWTFactory
+public class JWTFactory<TJWToken, TJWTUser, TUser>([FromKeyedServices(RSAKeyEnum.Private)] IRSAProvider @private,
+    IJWTFactoryOption option, IAuthority<TJWTUser, TUser> authority)
+    : IJWTFactory<TJWToken, TJWTUser, TUser>
+    where TJWTUser : JWTUser<TUser>, new()
+    where TJWToken : JWToken, new()
+    where TUser : User, new()
 {
-    public JWToken Refresh(JWToken token)
+    public async Task<TJWToken> RefreshAsync(string refreshToken)
     {
-        var user = authorityToken.GetUser(JsonConvert
-            .DeserializeObject<Dictionary<string, string>>(JwtBuilder.Create()
-                .WithAlgorithm(new RS256Algorithm(@public.Key, @private.Key))
-                .WithValidationParameters(JWT.ValidationParameters.Default)
-                .MustVerifySignature()
-                .Decode(token.RefreshToken)) ?? throw new InvalidRefreshTokenException());
-        return Sign(user!);
+        var user = await authority.GetUserFromTokenAsync(refreshToken);
+        if (user.Subject != JWTSubject.RefreshToken)
+            throw new InvalidRefreshTokenException();
+        return await SignAsync(user.User);
     }
 
-    public JWToken Sign(User user) =>
+    public virtual async Task<TJWToken> SignAsync(TUser user, TimeSpan? notBefore = null) =>
         new()
         {
-            Token = JwtBuilder.Create()
-                .WithAlgorithm(new RS256Algorithm(@public.Key, @private.Key))
-                .AddClaims(authorityToken.GetClaims(user
-                    .ToJwtUser(options.Authority, DateTime.UtcNow.Add(options.Expiration), options.Audience))
-                    .Where(key => !string.IsNullOrEmpty(key.Key))
-                    .Select(key => KeyValuePair.Create<string, object>(key.Key, key.Value)))
-                .Encode(),
-            Expiration = DateTime.UtcNow.Add(options.Expiration).ToEpoch(),
-            RefreshToken = JwtBuilder.Create()
-                .WithAlgorithm(new RS256Algorithm(@public.Key, @private.Key))
-                .AddClaims(authorityToken.GetClaims(user
-                    .ToJwtUser(options.Authority, DateTime.UtcNow.Add(options.RefresExpiration), options.Authority))
-                    .Where(key => !string.IsNullOrEmpty(key.Key))
-                    .Select(key => KeyValuePair.Create<string, object>(key.Key, key.Value)))
-                .Encode(),
-            RefreshExpiration = DateTime.UtcNow.Add(options.RefresExpiration).ToEpoch()
+            Token = await GetAccessTokenAsync(user, notBefore ?? TimeSpan.Zero),
+            Expiration = DateTime.UtcNow + option.Expiration,
+            RefreshToken = await GetRefreshTokenAsync(user, (notBefore ?? TimeSpan.Zero) + option.Expiration),
+            RefreshExpiration = DateTime.UtcNow + option.RefresExpiration
         };
+
+    protected async Task<string> GetTokenAsync(TJWTUser jWTUser)
+    {
+        var payload = JsonSerializer.Serialize(jWTUser);
+        var data = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(authority.Header)) + "." +
+            WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(payload));
+        var sign = await Task.Run(() =>
+            WebEncoders.Base64UrlEncode(@private.Provider.SignData(Encoding.UTF8.GetBytes(data),
+                authority.HashAlgorithmName, authority.RSASignaturePadding)));
+        return data + "." + sign;
+    }
+
+    protected virtual TJWTUser FillJWTUser(TUser user, TimeSpan notBefore)
+    {
+        var jwtUser = new TJWTUser();
+        jwtUser.FromUser(user);
+        jwtUser.Issuer = option.Authority;
+        jwtUser.NotBefore = DateTime.UtcNow + notBefore;
+        return jwtUser;
+    }
+
+    private Task<string> GetAccessTokenAsync(TUser user, TimeSpan notBefore)
+    {
+        var jwtUser = FillJWTUser(user, notBefore);
+        jwtUser.Subject = JWTSubject.AccessToken;
+        jwtUser.Expiration = DateTime.UtcNow + option.Expiration;
+        return GetTokenAsync(jwtUser);
+    }
+
+    private Task<string> GetRefreshTokenAsync(TUser user, TimeSpan notBefore)
+    {
+        var jwtUser = FillJWTUser(user, notBefore);
+        jwtUser.Subject = JWTSubject.RefreshToken;
+        jwtUser.Expiration = DateTime.UtcNow + option.RefresExpiration;
+        return GetTokenAsync(jwtUser);
+    }
 }

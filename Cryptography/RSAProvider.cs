@@ -4,17 +4,17 @@ namespace MParchin.Authority.Cryptography;
 
 public class RSAProvider : IRSAProvider
 {
-    public RSA Key { get; }
+    public RSACryptoServiceProvider Provider { get; }
     public RSAProvider(string path)
     {
-        Key = RSA.Create();
+        Provider = new();
         if (File.Exists(path))
-            Key.ImportFromPem(File.ReadAllText(path).ToCharArray());
+            Provider.ImportFromPem(File.ReadAllText(path).ToCharArray());
     }
 
     public void Dispose()
     {
-        Key.Dispose();
+        Provider.Dispose();
         GC.SuppressFinalize(this);
     }
 }
