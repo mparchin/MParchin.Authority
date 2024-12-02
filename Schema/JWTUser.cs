@@ -12,6 +12,7 @@ public class JWTUser<TUser>
     [JsonPropertyName("iss")]
     public string Issuer { get; set; } = "";
     [JsonPropertyName("exp")]
+    [JsonConverter(typeof(DateTimeToEpochConverter))]
     public DateTime Expiration { get; set; }
     [JsonPropertyName("iat")]
     [JsonConverter(typeof(DateTimeToEpochConverter))]
