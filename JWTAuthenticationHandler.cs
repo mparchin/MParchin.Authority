@@ -29,7 +29,7 @@ public class JWTAuthenticationHandler<TJWTUser, TUser>(IOptionsMonitor<JWTAuthen
             {
                 var tJWTUser = await authority.GetUserFromTokenAsync(bearer[1]);
                 if (tJWTUser.Subject != JWTSubject.AccessToken)
-                    return AuthenticateResult.Fail(new InvalidTokenException());
+                    throw new InvalidTokenException();
 
                 return AuthenticateResult.Success(authority.CreateTicket(tJWTUser, Scheme.Name));
             }

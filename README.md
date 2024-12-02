@@ -48,7 +48,7 @@ and to get the user in api methods:
     var user = new JWTUser(principal);
 
 also you need a pem encoded rsa key pair for authority service and just the public one for other
-services you can generate a pair using this commands:
+services you can generate a pair using these commands:
 
     ssh-keygen -t rsa -b 2048 -m PEM -f key
     openssl rsa -in key -pubout -outform PEM -out key.pub
