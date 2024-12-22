@@ -78,7 +78,7 @@ public static class AuthorityEndpoint<TJWToken, TJWTUser, TDbUser, TUser>
     //     return TypedResults.BadRequest();
     // }
 
-    private static async Task<Results<BadRequest, Ok<TJWToken>>> RegisterOTPAsync(
+    private static async Task<Results<BadRequest<Exception>, Ok<TJWToken>>> RegisterOTPAsync(
         RegisterOTPRequest request, IAuthorityService<TDbUser, TUser> service, IJWTFactory<TJWToken, TJWTUser, TUser> factory)
     {
         try
@@ -91,8 +91,10 @@ public static class AuthorityEndpoint<TJWToken, TJWTUser, TDbUser, TUser>
             }, request.Password, request.Otp);
             return TypedResults.Ok(await factory.SignAsync(user));
         }
-        catch { }
-        return TypedResults.BadRequest();
+        catch (Exception e)
+        {
+            return TypedResults.BadRequest(e);
+        }
     }
 
     private static async Task<Results<NotFound, Ok<PublicUserInfo>>> GetUserPublicInfoAsync(
@@ -141,7 +143,7 @@ public static class AuthorityEndpoint<TJWToken, TJWTUser, TDbUser, TUser>
         return TypedResults.Unauthorized();
     }
 
-    private static async Task<Results<BadRequest, Ok>> GenerateOTPAsync([FromRoute] string username,
+    private static async Task<Results<BadRequest<Exception>, Ok>> GenerateOTPAsync([FromRoute] string username,
         IAuthorityService<TDbUser, TUser> service)
     {
         try
@@ -152,11 +154,13 @@ public static class AuthorityEndpoint<TJWToken, TJWTUser, TDbUser, TUser>
                 await service.GeneratePhoneOTPAsync(username);
             return TypedResults.Ok();
         }
-        catch { }
-        return TypedResults.BadRequest();
+        catch (Exception e)
+        {
+            return TypedResults.BadRequest(e);
+        }
     }
 
-    private static async Task<Results<BadRequest, Ok>> ChangePasswordAsync([FromRoute] string username,
+    private static async Task<Results<BadRequest<Exception>, Ok>> ChangePasswordAsync([FromRoute] string username,
         ChangePasswordRequest request, IAuthorityService<TDbUser, TUser> service)
     {
         try
@@ -164,8 +168,10 @@ public static class AuthorityEndpoint<TJWToken, TJWTUser, TDbUser, TUser>
             await service.ChangePasswordAsync(username, request.Otp, request.NewPassword);
             return TypedResults.Ok();
         }
-        catch { }
-        return TypedResults.BadRequest();
+        catch (Exception e)
+        {
+            return TypedResults.BadRequest(e);
+        }
     }
 
     private static Ok<TUser> Me(ClaimsPrincipal principal)
