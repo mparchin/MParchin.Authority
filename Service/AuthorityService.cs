@@ -31,7 +31,7 @@ public class AuthorityService<TDbUser, TUser>(IAuthorityDb<TDbUser> db, IHash<TD
         storage.ConfirmAndRemoveAsync(username, otp);
 
     public Task<bool> ExistsAsync(string username) =>
-        db.Users.AnyAsync(user => user.Email == username || user.Password == username);
+        db.Users.AnyAsync(user => user.Email == username || user.Phone == username);
 
     public async Task GenerateEmailOTPAsync(string email)
     {
