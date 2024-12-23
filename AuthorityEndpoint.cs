@@ -78,7 +78,7 @@ public static class AuthorityEndpoint<TJWToken, TJWTUser, TDbUser, TUser>
     //     return TypedResults.BadRequest();
     // }
 
-    private static async Task<Results<BadRequest<Exception>, Ok<TJWToken>>> RegisterOTPAsync(
+    private static async Task<Results<BadRequest<string>, Ok<TJWToken>>> RegisterOTPAsync(
         RegisterOTPRequest request, IAuthorityService<TDbUser, TUser> service, IJWTFactory<TJWToken, TJWTUser, TUser> factory)
     {
         try
@@ -93,7 +93,7 @@ public static class AuthorityEndpoint<TJWToken, TJWTUser, TDbUser, TUser>
         }
         catch (Exception e)
         {
-            return TypedResults.BadRequest(e);
+            return TypedResults.BadRequest(e.Message);
         }
     }
 
@@ -143,7 +143,7 @@ public static class AuthorityEndpoint<TJWToken, TJWTUser, TDbUser, TUser>
         return TypedResults.Unauthorized();
     }
 
-    private static async Task<Results<BadRequest<Exception>, Ok>> GenerateOTPAsync([FromRoute] string username,
+    private static async Task<Results<BadRequest<string>, Ok>> GenerateOTPAsync([FromRoute] string username,
         IAuthorityService<TDbUser, TUser> service)
     {
         try
@@ -156,11 +156,11 @@ public static class AuthorityEndpoint<TJWToken, TJWTUser, TDbUser, TUser>
         }
         catch (Exception e)
         {
-            return TypedResults.BadRequest(e);
+            return TypedResults.BadRequest(e.Message);
         }
     }
 
-    private static async Task<Results<BadRequest<Exception>, Ok>> ChangePasswordAsync([FromRoute] string username,
+    private static async Task<Results<BadRequest<string>, Ok>> ChangePasswordAsync([FromRoute] string username,
         ChangePasswordRequest request, IAuthorityService<TDbUser, TUser> service)
     {
         try
@@ -170,7 +170,7 @@ public static class AuthorityEndpoint<TJWToken, TJWTUser, TDbUser, TUser>
         }
         catch (Exception e)
         {
-            return TypedResults.BadRequest(e);
+            return TypedResults.BadRequest(e.Message);
         }
     }
 
