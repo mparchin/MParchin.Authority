@@ -45,6 +45,7 @@ public class JWTUser<TUser>
 
     public virtual void FromUser(TUser user)
     {
+        User.Id = user.Id;
         User.Guid = user.Guid;
         User.Name = user.Name;
         User.Email = user.Email;
@@ -62,6 +63,7 @@ public class JWTUser<TUser>
             new("iat", IssuedAt.ToEpoch().ToString(), "epoch", Issuer),
             new("nbf", NotBefore.ToEpoch().ToString(), "epoch", Issuer),
             new("sub", Subject, null, Issuer),
+            new("uid",User.Id.ToString(),null,Issuer),
             new("guid", User.Guid.ToString(), "guid", Issuer),
             new(NameClaimType, User.Name, null, Issuer),
             new("email", User.Email, null, Issuer),
@@ -91,6 +93,9 @@ public class JWTUser<TUser>
                     break;
                 case "sub":
                     Subject = claim.Value;
+                    break;
+                case "uid":
+                    User.Id = Convert.ToInt32(claim.Value);
                     break;
                 case "guid":
                     User.Guid = Guid.Parse(claim.Value);
